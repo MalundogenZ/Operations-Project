@@ -1,6 +1,7 @@
 import { getDailyTasks, getGoals, computeRecord, getTrackerEntry } from '@/lib/db'
 import WinRecord from '@/components/dashboard/WinRecord'
-import TodayTracker, { trackerToWinState } from '@/components/dashboard/TodayTracker'
+import TodayTracker from '@/components/dashboard/TodayTracker'
+import { trackerToWinState } from '@/lib/utils'
 import DailyTasks from '@/components/dashboard/DailyTasks'
 import GoalsSummary from '@/components/dashboard/GoalsSummary'
 import { format } from 'date-fns'

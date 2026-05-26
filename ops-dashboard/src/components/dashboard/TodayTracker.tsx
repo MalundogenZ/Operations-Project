@@ -2,20 +2,9 @@
 
 import { useState, useRef } from 'react'
 import { Brain, Heart, Dumbbell, BookOpen, CheckCircle2, Circle } from 'lucide-react'
-import type { TrackerEntry } from '@/lib/types'
+import type { WinState } from '@/lib/utils'
 
 type WinKey = 'mental' | 'spiritual' | 'physical' | 'accountability'
-
-interface WinState {
-  mental: boolean
-  spiritual: boolean
-  physical: boolean
-  accountability: boolean
-  mental_note: string
-  spiritual_note: string
-  physical_note: string
-  accountability_note: string
-}
 
 interface Props {
   date: string
@@ -129,15 +118,3 @@ export default function TodayTracker({ date, initial, onUpdate }: Props) {
   )
 }
 
-export function trackerToWinState(entry: TrackerEntry | null): WinState {
-  return {
-    mental: !!(entry?.mental),
-    spiritual: !!(entry?.spiritual),
-    physical: !!(entry?.physical),
-    accountability: !!(entry?.accountability),
-    mental_note: entry?.mental_note ?? '',
-    spiritual_note: entry?.spiritual_note ?? '',
-    physical_note: entry?.physical_note ?? '',
-    accountability_note: entry?.accountability_note ?? '',
-  }
-}
