@@ -2,13 +2,15 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Target, Grid3X3, CalendarDays, Compass, Zap } from 'lucide-react'
+import { LayoutDashboard, Target, Grid3X3, CalendarDays, Compass, Zap, CalendarCheck, BarChart3 } from 'lucide-react'
 
 const nav = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/goals', label: 'Goals', icon: Target },
   { href: '/areas', label: 'Areas', icon: Grid3X3 },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
+  { href: '/weekly-review', label: 'Weekly Review', icon: CalendarCheck },
+  { href: '/quarterly', label: 'Quarterly Plan', icon: BarChart3 },
   { href: '/path', label: 'Personal Path', icon: Compass },
 ]
 
