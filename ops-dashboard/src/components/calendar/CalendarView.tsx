@@ -3,18 +3,20 @@
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Plus, X, Trash2 } from 'lucide-react'
 import { format, endOfMonth, eachDayOfInterval, getDay, isToday, parseISO } from 'date-fns'
-import type { CalendarEntry } from '@/lib/types'
+import type { CalendarEntry, DayResult } from '@/lib/types'
 
 interface Props {
   initialEntries: CalendarEntry[]
+  initialResults: DayResult[]
   initialYear: number
   initialMonth: number
 }
 
-export default function CalendarView({ initialEntries, initialYear, initialMonth }: Props) {
+export default function CalendarView({ initialEntries, initialResults, initialYear, initialMonth }: Props) {
   const [year, setYear] = useState(initialYear)
   const [month, setMonth] = useState(initialMonth)
   const [entries, setEntries] = useState<CalendarEntry[]>(initialEntries)
+  const [results, setResults] = useState<DayResult[]>(initialResults)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [addingEntry, setAddingEntry] = useState(false)
   const [newName, setNewName] = useState('')
@@ -24,28 +26,30 @@ export default function CalendarView({ initialEntries, initialYear, initialMonth
   const days = eachDayOfInterval({ start: firstDay, end: lastDay })
   const startPad = getDay(firstDay)
 
-  function prevMonth() {
-    if (month === 1) { setYear(y => y - 1); setMonth(12) }
-    else setMonth(m => m - 1)
-  }
-  function nextMonth() {
-    if (month === 12) { setYear(y => y + 1); setMonth(1) }
-    else setMonth(m => m + 1)
+  const resultMap = new Map(results.map(r => [r.date, r.result]))
+
+  async function loadMonth(y: number, m: number) {
+    const [entriesRes, resultsRes] = await Promise.all([
+      fetch(`/api/calendar?year=${y}&month=${m}`),
+      fetch(`/api/day-results?year=${y}&month=${m}`),
+    ])
+    setEntries(await entriesRes.json())
+    setResults(await resultsRes.json())
   }
 
-  function entriesForDate(d: Date) {
-    const s = format(d, 'yyyy-MM-dd')
-    return entries.filter(e => e.date === s)
+  async function prev() {
+    const ny = month === 1 ? year - 1 : year
+    const nm = month === 1 ? 12 : month - 1
+    setYear(ny); setMonth(nm)
+    await loadMonth(ny, nm)
   }
 
-  async function fetchEntries(y: number, m: number) {
-    const res = await fetch(`/api/calendar?year=${y}&month=${m}`)
-    const data = await res.json()
-    setEntries(data)
+  async function next() {
+    const ny = month === 12 ? year + 1 : year
+    const nm = month === 12 ? 1 : month + 1
+    setYear(ny); setMonth(nm)
+    await loadMonth(ny, nm)
   }
-
-  async function prev() { prevMonth(); await fetchEntries(month === 1 ? year - 1 : year, month === 1 ? 12 : month - 1) }
-  async function next() { nextMonth(); await fetchEntries(month === 12 ? year + 1 : year, month === 12 ? 1 : month + 1) }
 
   async function addEntry() {
     if (!newName.trim() || !selectedDate) return
@@ -70,7 +74,6 @@ export default function CalendarView({ initialEntries, initialYear, initialMonth
   return (
     <div className="grid grid-cols-3 gap-6">
       <div className="col-span-2">
-        {/* Calendar header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-base font-semibold text-[#f0f0f0]">
             {format(firstDay, 'MMMM yyyy')}
@@ -85,33 +88,37 @@ export default function CalendarView({ initialEntries, initialYear, initialMonth
           </div>
         </div>
 
-        {/* Day names */}
         <div className="grid grid-cols-7 mb-2">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
             <div key={d} className="text-center text-xs text-[#374151] py-1 font-medium">{d}</div>
           ))}
         </div>
 
-        {/* Grid */}
         <div className="grid grid-cols-7 gap-1">
           {Array.from({ length: startPad }).map((_, i) => <div key={`pad-${i}`} />)}
           {days.map(day => {
             const ds = format(day, 'yyyy-MM-dd')
-            const dayEntries = entriesForDate(day)
+            const dayEntries = entries.filter(e => e.date === ds)
             const selected = selectedDate === ds
             const today = isToday(day)
+            const result = resultMap.get(ds)
             return (
               <button
                 key={ds}
                 onClick={() => setSelectedDate(selected ? null : ds)}
-                className={`aspect-square flex flex-col items-center justify-center rounded-lg text-sm transition-colors relative
+                className={`aspect-square flex flex-col items-center justify-center rounded-lg text-sm transition-colors relative gap-0.5
                   ${selected ? 'bg-blue-600 text-white' : today ? 'bg-[#1e1e2e] text-blue-400' : 'hover:bg-[#111118] text-[#9ca3af]'}
                 `}
               >
-                <span className="font-medium">{format(day, 'd')}</span>
-                {dayEntries.length > 0 && (
-                  <div className={`absolute bottom-1.5 flex gap-0.5`}>
-                    {dayEntries.slice(0, 3).map((_, i) => (
+                <span className="font-medium text-xs">{format(day, 'd')}</span>
+                {result && (
+                  <span className={`text-[10px] font-bold leading-none ${
+                    selected ? 'text-white/80' : result === 'W' ? 'text-green-400' : 'text-red-400'
+                  }`}>{result}</span>
+                )}
+                {!result && dayEntries.length > 0 && (
+                  <div className="flex gap-0.5">
+                    {dayEntries.slice(0, 2).map((_, i) => (
                       <div key={i} className={`w-1 h-1 rounded-full ${selected ? 'bg-white/70' : 'bg-blue-500'}`} />
                     ))}
                   </div>
@@ -120,9 +127,24 @@ export default function CalendarView({ initialEntries, initialYear, initialMonth
             )
           })}
         </div>
+
+        {/* Legend */}
+        <div className="flex items-center gap-4 mt-4 px-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-bold text-green-400">W</span>
+            <span className="text-xs text-[#4b5563]">All wins + tasks done</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-bold text-red-400">L</span>
+            <span className="text-xs text-[#4b5563]">Incomplete</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+            <span className="text-xs text-[#4b5563]">Journal entries</span>
+          </div>
+        </div>
       </div>
 
-      {/* Sidebar: selected day */}
       <div className="bg-[#111118] border border-[#1e1e2e] rounded-xl p-5">
         {selectedDate ? (
           <>
@@ -131,13 +153,17 @@ export default function CalendarView({ initialEntries, initialYear, initialMonth
                 <h3 className="text-sm font-semibold text-[#f0f0f0]">
                   {format(parseISO(selectedDate), 'MMMM d')}
                 </h3>
-                <p className="text-xs text-[#4b5563]">{format(parseISO(selectedDate), 'EEEE')}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs text-[#4b5563]">{format(parseISO(selectedDate), 'EEEE')}</p>
+                  {resultMap.get(selectedDate) && (
+                    <span className={`text-xs font-bold ${resultMap.get(selectedDate) === 'W' ? 'text-green-400' : 'text-red-400'}`}>
+                      {resultMap.get(selectedDate)}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setAddingEntry(true)}
-                  className="text-blue-400 hover:text-blue-300 transition-colors"
-                >
+                <button onClick={() => setAddingEntry(true)} className="text-blue-400 hover:text-blue-300 transition-colors">
                   <Plus size={15} />
                 </button>
                 <button onClick={() => setSelectedDate(null)} className="text-[#374151] hover:text-[#6b7280]">

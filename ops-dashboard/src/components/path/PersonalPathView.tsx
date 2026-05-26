@@ -1,128 +1,203 @@
-import { ArrowRight, Star } from 'lucide-react'
+'use client'
 
-const skills = {
-  technical: [
-    { name: 'Python', desc: 'ML, data analysis, automation, APIs' },
-    { name: 'AI & Machine Learning', desc: 'NLP, computer vision, TensorFlow, OpenAI API' },
-    { name: 'Data Science & Analytics', desc: 'Power BI, Tableau, predictive modeling' },
-    { name: 'Cloud Computing', desc: 'AWS, Google Cloud, Microsoft Azure' },
-    { name: 'Blockchain & Web3', desc: 'Smart contracts, Solidity, DeFi, dApps' },
-  ],
-  business: [
-    { name: 'Financial Modelling', desc: 'DCF, LBO, valuation, projections' },
-    { name: 'Investing Strategies', desc: 'Portfolio management, private equity, REITs' },
-    { name: 'Sales & Negotiation', desc: 'Psychology of selling, closing deals' },
-    { name: 'Digital Marketing', desc: 'TikTok/Facebook ads, SEO, email marketing' },
-    { name: 'Project Management', desc: 'Agile, Scrum, Kanban, Jira' },
-  ],
-  personal: [
-    { name: 'Productivity', desc: 'GTD, time-blocking, prioritisation' },
-    { name: 'Languages', desc: 'Spanish, Chinese, or French proficiency' },
-    { name: 'Communication', desc: 'Articulation, persuasion, leadership' },
-  ],
-  future: [
-    { name: 'Quantum Computing', desc: 'Encryption, logistics, problem-solving' },
-    { name: 'Green Technology & ESG', desc: 'Carbon accounting, clean energy, circular economy' },
-    { name: 'Web 3.0', desc: "CBDCs, DeFi, tokenisation of real-world assets" },
-    { name: 'Space Economy', desc: 'Satellite technology, space infrastructure' },
-    { name: 'Creator Economy', desc: 'AI content creation, micro communities' },
-  ],
+import { useState } from 'react'
+import { Star, ArrowRight, Pencil, Check, Plus, Trash2, X } from 'lucide-react'
+
+interface SkillItem { name: string; desc: string }
+interface RoadmapStage { phase: string; color: string; accent: string; items: string[] }
+interface UltimateGoal { goal: string; company: string; year: string }
+
+interface PathState {
+  ultimate_goal: UltimateGoal
+  skills_technical: SkillItem[]
+  skills_business: SkillItem[]
+  skills_personal: SkillItem[]
+  skills_future: SkillItem[]
+  roadmap: RoadmapStage[]
 }
 
-const roadmap = [
-  {
-    phase: 'Bachelors Phase',
-    color: 'border-blue-500/40 bg-blue-500/5',
-    accent: 'text-blue-400',
-    items: [
-      'Get into CCL / CLIP / Economics Club',
-      'Make €2k/month, save 60%',
-      'Vienna exchange in final year',
-      'Internship at UBS',
-    ],
-  },
-  {
-    phase: 'Finance Career',
-    color: 'border-green-500/40 bg-green-500/5',
-    accent: 'text-green-400',
-    items: [
-      'Private Banking (Portugal, USA, Switzerland)',
-      '3 years maximum',
-      'Be a killer on the job',
-    ],
-  },
-  {
-    phase: 'MBA Abroad',
-    color: 'border-yellow-500/40 bg-yellow-500/5',
-    accent: 'text-yellow-400',
-    items: [
-      'USA: Wharton, Harvard, Stanford, Columbia',
-      'Europe: LBS, HEC Paris, IESE, SDA Bocconi',
-      'Asia: NUS, HKU as alternatives',
-    ],
-  },
-  {
-    phase: 'High Finance',
-    color: 'border-orange-500/40 bg-orange-500/5',
-    accent: 'text-orange-400',
-    items: [
-      'Investment Banking',
-      'Private Equity',
-      'Consulting',
-      'Oil & Gas major',
-    ],
-  },
-  {
-    phase: 'Maximus Investments',
-    color: 'border-purple-500/40 bg-purple-500/5',
-    accent: 'text-purple-400',
-    items: [
-      'Found holding company',
-      'Investing + AI Automation focus',
-      'Grow to 7 figures, build network',
-      'Scale to $42B by 2042',
-    ],
-  },
+interface Props {
+  initial: PathState
+}
+
+const skillSections: { key: keyof Pick<PathState, 'skills_technical' | 'skills_business' | 'skills_personal' | 'skills_future'>; title: string; color: string }[] = [
+  { key: 'skills_technical', title: 'Technical Skills', color: 'text-blue-400' },
+  { key: 'skills_business', title: 'Business Skills', color: 'text-green-400' },
+  { key: 'skills_personal', title: 'Personal Skills', color: 'text-purple-400' },
+  { key: 'skills_future', title: 'Future Trends', color: 'text-yellow-400' },
 ]
 
-const skillSections = [
-  { title: 'Technical Skills', key: 'technical' as const, color: 'text-blue-400' },
-  { title: 'Business Skills', key: 'business' as const, color: 'text-green-400' },
-  { title: 'Personal Skills', key: 'personal' as const, color: 'text-purple-400' },
-  { title: 'Future Trends', key: 'future' as const, color: 'text-yellow-400' },
-]
+export default function PersonalPathView({ initial }: Props) {
+  const [editing, setEditing] = useState(false)
+  const [state, setState] = useState<PathState>(initial)
+  const [saving, setSaving] = useState(false)
 
-export default function PersonalPathView() {
+  async function save() {
+    setSaving(true)
+    await fetch('/api/path', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state),
+    })
+    setSaving(false)
+    setEditing(false)
+  }
+
+  function updateGoal(field: keyof UltimateGoal, value: string) {
+    setState(s => ({ ...s, ultimate_goal: { ...s.ultimate_goal, [field]: value } }))
+  }
+
+  function updateSkill(key: keyof Pick<PathState, 'skills_technical' | 'skills_business' | 'skills_personal' | 'skills_future'>, idx: number, field: keyof SkillItem, value: string) {
+    setState(s => {
+      const arr = [...s[key]]
+      arr[idx] = { ...arr[idx], [field]: value }
+      return { ...s, [key]: arr }
+    })
+  }
+
+  function addSkill(key: keyof Pick<PathState, 'skills_technical' | 'skills_business' | 'skills_personal' | 'skills_future'>) {
+    setState(s => ({ ...s, [key]: [...s[key], { name: '', desc: '' }] }))
+  }
+
+  function removeSkill(key: keyof Pick<PathState, 'skills_technical' | 'skills_business' | 'skills_personal' | 'skills_future'>, idx: number) {
+    setState(s => ({ ...s, [key]: s[key].filter((_, i) => i !== idx) }))
+  }
+
+  function updateRoadmapItem(stageIdx: number, itemIdx: number, value: string) {
+    setState(s => {
+      const roadmap = s.roadmap.map((stage, si) => {
+        if (si !== stageIdx) return stage
+        const items = [...stage.items]
+        items[itemIdx] = value
+        return { ...stage, items }
+      })
+      return { ...s, roadmap }
+    })
+  }
+
+  function addRoadmapItem(stageIdx: number) {
+    setState(s => {
+      const roadmap = s.roadmap.map((stage, si) =>
+        si !== stageIdx ? stage : { ...stage, items: [...stage.items, ''] }
+      )
+      return { ...s, roadmap }
+    })
+  }
+
+  function removeRoadmapItem(stageIdx: number, itemIdx: number) {
+    setState(s => {
+      const roadmap = s.roadmap.map((stage, si) =>
+        si !== stageIdx ? stage : { ...stage, items: stage.items.filter((_, i) => i !== itemIdx) }
+      )
+      return { ...s, roadmap }
+    })
+  }
+
   return (
     <div className="space-y-10">
+      {/* Edit toggle */}
+      <div className="flex justify-end">
+        {editing ? (
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setState(initial); setEditing(false) }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#6b7280] border border-[#1e1e2e] rounded-lg hover:text-[#f0f0f0] transition-colors"
+            >
+              <X size={12} /> Cancel
+            </button>
+            <button
+              onClick={save}
+              disabled={saving}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              <Check size={12} /> {saving ? 'Saving...' : 'Save changes'}
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setEditing(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#6b7280] border border-[#1e1e2e] rounded-lg hover:text-[#f0f0f0] hover:bg-[#111118] transition-colors"
+          >
+            <Pencil size={12} /> Edit
+          </button>
+        )}
+      </div>
+
       {/* Ultimate Goal */}
       <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-2xl p-6">
         <div className="flex items-center gap-3 mb-2">
           <Star size={16} className="text-yellow-400" />
           <span className="text-xs font-medium text-[#6b7280] uppercase tracking-wider">Ultimate Goal</span>
         </div>
-        <h2 className="text-3xl font-bold text-[#f0f0f0] mb-1">Billionaire — $42B</h2>
-        <p className="text-[#6b7280]">Maximus Investments · Target year 2042</p>
+        {editing ? (
+          <div className="space-y-2">
+            <input
+              value={state.ultimate_goal.goal}
+              onChange={e => updateGoal('goal', e.target.value)}
+              className="w-full bg-transparent text-3xl font-bold text-[#f0f0f0] outline-none border-b border-purple-500/30 pb-1"
+            />
+            <div className="flex gap-3">
+              <input
+                value={state.ultimate_goal.company}
+                onChange={e => updateGoal('company', e.target.value)}
+                placeholder="Company name"
+                className="flex-1 bg-transparent text-sm text-[#6b7280] outline-none border-b border-[#1e1e2e] pb-0.5"
+              />
+              <input
+                value={state.ultimate_goal.year}
+                onChange={e => updateGoal('year', e.target.value)}
+                placeholder="Year"
+                className="w-24 bg-transparent text-sm text-[#6b7280] outline-none border-b border-[#1e1e2e] pb-0.5"
+              />
+            </div>
+          </div>
+        ) : (
+          <>
+            <h2 className="text-3xl font-bold text-[#f0f0f0] mb-1">{state.ultimate_goal.goal}</h2>
+            <p className="text-[#6b7280]">{state.ultimate_goal.company} · Target year {state.ultimate_goal.year}</p>
+          </>
+        )}
       </div>
 
-      {/* Long View Roadmap */}
+      {/* Roadmap */}
       <div>
         <h2 className="text-base font-semibold text-[#f0f0f0] mb-4">Long View Roadmap</h2>
         <div className="flex gap-3 overflow-x-auto pb-2">
-          {roadmap.map((stage, i) => (
-            <div key={i} className="flex items-start gap-3 flex-shrink-0">
+          {state.roadmap.map((stage, si) => (
+            <div key={si} className="flex items-start gap-3 flex-shrink-0">
               <div className={`border rounded-xl p-4 w-52 ${stage.color}`}>
                 <p className={`text-xs font-semibold mb-3 ${stage.accent}`}>{stage.phase}</p>
                 <ul className="space-y-1.5">
-                  {stage.items.map((item, j) => (
-                    <li key={j} className="flex items-start gap-2 text-xs text-[#9ca3af]">
+                  {stage.items.map((item, ii) => (
+                    <li key={ii} className="flex items-start gap-2 text-xs text-[#9ca3af]">
                       <span className="mt-0.5 flex-shrink-0 text-[#374151]">·</span>
-                      {item}
+                      {editing ? (
+                        <div className="flex-1 flex gap-1">
+                          <input
+                            value={item}
+                            onChange={e => updateRoadmapItem(si, ii, e.target.value)}
+                            className="flex-1 bg-transparent text-xs text-[#9ca3af] outline-none border-b border-[#2e2e3e] pb-0.5"
+                          />
+                          <button onClick={() => removeRoadmapItem(si, ii)} className="text-[#374151] hover:text-red-400">
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ) : item}
                     </li>
                   ))}
+                  {editing && (
+                    <li>
+                      <button
+                        onClick={() => addRoadmapItem(si)}
+                        className="flex items-center gap-1 text-xs text-[#374151] hover:text-[#6b7280]"
+                      >
+                        <Plus size={10} /> Add
+                      </button>
+                    </li>
+                  )}
                 </ul>
               </div>
-              {i < roadmap.length - 1 && (
+              {si < state.roadmap.length - 1 && (
                 <ArrowRight size={14} className="text-[#374151] mt-6 flex-shrink-0" />
               )}
             </div>
@@ -140,12 +215,44 @@ export default function PersonalPathView() {
                 {section.title}
               </h3>
               <div className="space-y-3">
-                {skills[section.key].map((skill, i) => (
-                  <div key={i} className="flex flex-col gap-0.5">
-                    <span className="text-sm font-medium text-[#d1d5db]">{skill.name}</span>
-                    <span className="text-xs text-[#4b5563]">{skill.desc}</span>
+                {state[section.key].map((skill, idx) => (
+                  <div key={idx} className="group flex flex-col gap-0.5">
+                    {editing ? (
+                      <div className="flex gap-2 items-start">
+                        <div className="flex-1 space-y-1">
+                          <input
+                            value={skill.name}
+                            onChange={e => updateSkill(section.key, idx, 'name', e.target.value)}
+                            placeholder="Skill name"
+                            className="w-full bg-transparent text-sm font-medium text-[#d1d5db] outline-none border-b border-[#1e1e2e] pb-0.5"
+                          />
+                          <input
+                            value={skill.desc}
+                            onChange={e => updateSkill(section.key, idx, 'desc', e.target.value)}
+                            placeholder="Description"
+                            className="w-full bg-transparent text-xs text-[#4b5563] outline-none border-b border-[#1e1e2e] pb-0.5"
+                          />
+                        </div>
+                        <button onClick={() => removeSkill(section.key, idx)} className="text-[#374151] hover:text-red-400 mt-1">
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="text-sm font-medium text-[#d1d5db]">{skill.name}</span>
+                        <span className="text-xs text-[#4b5563]">{skill.desc}</span>
+                      </>
+                    )}
                   </div>
                 ))}
+                {editing && (
+                  <button
+                    onClick={() => addSkill(section.key)}
+                    className="flex items-center gap-1 text-xs text-[#374151] hover:text-[#6b7280] transition-colors mt-1"
+                  >
+                    <Plus size={12} /> Add skill
+                  </button>
+                )}
               </div>
             </div>
           ))}

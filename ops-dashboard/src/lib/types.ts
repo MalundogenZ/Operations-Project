@@ -36,6 +36,43 @@ export interface TrackerEntry {
   spiritual: number
   physical: number
   accountability: number
+  mental_note: string
+  spiritual_note: string
+  physical_note: string
+  accountability_note: string
+}
+
+export interface WeeklyReview {
+  id: number
+  week_start: string
+  went_well: string
+  improve: string
+  next_focus: string
+}
+
+export interface QuarterlyPlan {
+  id: number
+  year: number
+  quarter: number
+  theme: string
+  notes: string
+}
+
+export interface QuarterlyItem {
+  id: number
+  plan_id: number
+  title: string
+  completed: number
+}
+
+export interface DayResult {
+  date: string
+  result: 'W' | 'L' | null
+}
+
+export interface PathData {
+  key: string
+  value: string
 }
 
 export type GoalStatus = Goal['status']
